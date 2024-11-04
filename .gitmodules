@@ -1,0 +1,3 @@
+[submodule "term-project"]
+	path = term-project
+	url = git@github.com:yashkmittal/term-project.git
