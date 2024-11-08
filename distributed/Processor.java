@@ -1,11 +1,10 @@
+package distributed;
 import java.util.ArrayList;
 import java.lang.Integer;
 
 import java.io.*;
 import java.util.Scanner;
 import java.net.Socket;
-
-package ECE382N_Term_Project;
 
 public class Processor extends Thread{
     Thread receiveThread;

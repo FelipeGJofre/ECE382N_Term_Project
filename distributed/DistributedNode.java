@@ -1,10 +1,9 @@
+package distributed;
 import java.util.ArrayList;
 import java.lang.Integer;
 import java.io.*;
 import java.net.*;
 import java.util.concurrent.*;
-
-package ECE382N_Term_Project;
 
 public class DistributedNode implements Runnable {
     private final int port;

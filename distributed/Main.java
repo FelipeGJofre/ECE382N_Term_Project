@@ -1,6 +1,5 @@
-import ECE382N_Term_Project.DistributedNode;
-
-public class main{
+package distributed;
+public class Main{
     public static void main(String[] args) {
         // Create three nodes on different ports
         DistributedNode[] nodes = new DistributedNode[3];
