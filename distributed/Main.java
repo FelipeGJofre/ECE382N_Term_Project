@@ -1,5 +1,12 @@
 package distributed;
+
+import java.lang.Integer;
 public class Main{
+
+    public static Integer handler(Message message){
+        System.out.println("Received message: " + message.toString());
+        return 0;
+    }
     public static void main(String[] args) {
         // Create three nodes on different ports
         DistributedNode[] nodes = new DistributedNode[3];
@@ -8,7 +15,7 @@ public class Main{
         // Initialize and start nodes
         for (int i = 0; i < 3; i++) {
             final int port = 8080 + i;
-            nodes[i] = new DistributedNode("localhost", port);
+            nodes[i] = new DistributedNode("localhost", port, Main::handler);
             nodeThreads[i] = new Thread(nodes[i]);
             nodeThreads[i].start();
         }
@@ -19,25 +26,30 @@ public class Main{
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
+        
         // Demonstrate message passing between nodes
         try {
+            
+            Message msg = new Message(8080, 8081, Message.MessageTag.REQUEST, "Hello from Node 0 to Node 1!");
             // Node 0 sends message to Node 1
-            nodes[0].send("localhost", 8081, "Hello from Node 0 to Node 1!");
+            nodes[0].send("localhost", 8081, msg);
             Thread.sleep(500);
-
+            
+            msg = new Message(8081, 8082, Message.MessageTag.REPLY, "Hello from Node 1 to Node 2!");
             // Node 1 sends message to Node 2
-            nodes[1].send("localhost", 8082, "Hello from Node 1 to Node 2!");
+            nodes[1].send("localhost", 8082, msg);
             Thread.sleep(500);
-
+            
+            msg = new Message(8082, 8080, Message.MessageTag.RELEASE, "Hello from Node 2 to Node 0!");
             // Node 2 sends message to Node 0
-            nodes[2].send("localhost", 8080, "Hello from Node 2 to Node 0!");
+            nodes[2].send("localhost", 8080, msg);
             Thread.sleep(500);
 
             // Broadcast from Node 0 to all other nodes
             System.out.println("\nBroadcasting message from Node 0:");
             for (int i = 1; i < nodes.length; i++) {
-                nodes[0].send("localhost", 8080 + i, "Broadcast message from Node 0!");
+                msg = new Message(8080, 8080 + i, Message.MessageTag.REQUEST, "Broadcast message from Node 0!");
+                nodes[0].send("localhost", 8080 + i, msg);
             }
 
             // Keep the system running for a while to observe messages

@@ -6,24 +6,35 @@ import java.io.*;
 import java.net.*;
 import java.util.concurrent.*;
 
-public class DistributedNode implements Runnable {
+
+public class TerminationDetection implements Runnable {
+
+    public enum termination_state{
+    PASSIVE,
+    AWAKE};
     private final int port;
     private final String host;
     private volatile boolean running;
-    
     private ServerSocket serverSocket;
     private final BlockingQueue<String> messageQueue;
     private final ExecutorService executorService;
 
-    private final Function<Message, Integer> messageHandler;
+    private final Function<String, String> messageHandler;
 
-    public DistributedNode(String host, int port, Function<Message, Integer> messageHandler) {
+    // Termination Detection specific variables
+    private int D;
+    private int parent;
+
+
+    public TerminationDetection(String host, int port, Function<Message, Integer> messageHandler, int state ) {
         this.host = host; /* Used for debugging. */
         this.port = port; 
         this.messageQueue = new LinkedBlockingQueue<>();
         this.executorService = Executors.newFixedThreadPool(2);
         this.running = true;
         this.messageHandler = messageHandler;
+        this.D = 0;
+        this.parent = 0;
     }
 
     @Override
@@ -65,7 +76,7 @@ public class DistributedNode implements Runnable {
                 String message = messageQueue.poll(1, TimeUnit.SECONDS);
                 if (message != null) {
                     System.out.println("Received message: " + message);
-                    messageHandler.apply(Message.fromString(message));
+                    this.D -= 1;
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -77,8 +88,10 @@ public class DistributedNode implements Runnable {
     public void send(String destinationHost, int destinationPort, Message message) {
         try (Socket socket = new Socket(destinationHost, destinationPort); 
             PrintWriter writer = new PrintWriter(socket.getOutputStream(), true)) {
-                String charMsg = message.toString();
+                String charMsg = "\r\n";
                 writer.println(charMsg);
+                if()
+                this.D += 1;
         } catch (IOException e) {
             System.err.println("Error sending message: " + e.getMessage());
         }
