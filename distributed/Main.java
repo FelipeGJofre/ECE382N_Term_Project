@@ -30,17 +30,17 @@ public class Main{
         // Demonstrate message passing between nodes
         try {
             
-            Message msg = new Message(8080, 8081, Message.MessageTag.REQUEST, "Hello from Node 0 to Node 1!");
+            Message msg = new Message(8080, 8081, Message.MessageTag.TAG_0, "Hello from Node 0 to Node 1!");
             // Node 0 sends message to Node 1
             nodes[0].send("localhost", 8081, msg);
             Thread.sleep(500);
             
-            msg = new Message(8081, 8082, Message.MessageTag.REPLY, "Hello from Node 1 to Node 2!");
+            msg = new Message(8081, 8082, Message.MessageTag.TAG_0, "Hello from Node 1 to Node 2!");
             // Node 1 sends message to Node 2
             nodes[1].send("localhost", 8082, msg);
             Thread.sleep(500);
             
-            msg = new Message(8082, 8080, Message.MessageTag.RELEASE, "Hello from Node 2 to Node 0!");
+            msg = new Message(8082, 8080, Message.MessageTag.TAG_0, "Hello from Node 2 to Node 0!");
             // Node 2 sends message to Node 0
             nodes[2].send("localhost", 8080, msg);
             Thread.sleep(500);
@@ -48,7 +48,7 @@ public class Main{
             // Broadcast from Node 0 to all other nodes
             System.out.println("\nBroadcasting message from Node 0:");
             for (int i = 1; i < nodes.length; i++) {
-                msg = new Message(8080, 8080 + i, Message.MessageTag.REQUEST, "Broadcast message from Node 0!");
+                msg = new Message(8080, 8080 + i, Message.MessageTag.TAG_0, "Broadcast message from Node 0!");
                 nodes[0].send("localhost", 8080 + i, msg);
             }
 

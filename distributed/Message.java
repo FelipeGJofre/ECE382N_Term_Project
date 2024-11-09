@@ -1,18 +1,23 @@
 package distributed;
 public class Message {
 
-    public final int srcPort;
+    private final int srcPort;
 
-    public final int destPort;
+    private final int destPort;
     
-    public final String data;
+    private final String data;
     
-    public final MessageTag tag;
+    private final MessageTag tag;
     
     public enum MessageTag {
-        REQUEST,
-        REPLY,
-        RELEASE
+        TAG_0,
+        TAG_1,
+        TAG_2,
+        TAG_3,
+        TAG_4,
+        TAG_5,
+        TAG_6,
+        TAG_7,
     };
 
     public Message(int srcPort, int destPort, MessageTag tag, String data) {
@@ -34,5 +39,21 @@ public class Message {
     @Override
     public String toString() {
         return srcPort + "," + destPort + "," + tag + "," + data + "\r\n";
+    }
+
+    public MessageTag getTag() {
+        return tag;
+    }
+
+    public String getData() {
+        return data;
+    }
+
+    public int getSrcPort() {
+        return srcPort;
+    }
+
+    public int getDestPort() {
+        return destPort;
     }
 }
