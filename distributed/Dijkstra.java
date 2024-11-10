@@ -1,6 +1,7 @@
 package distributed;
 
 import java.util.*;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class Dijkstra {
     
@@ -25,6 +26,7 @@ public class Dijkstra {
     public boolean terminated;
     
     private DistributedNode comm_node;
+    private LinkedBlockingQueue<Message> ack_message_queue = new LinkedBlockingQueue<>();
 
     public Dijkstra(int id, ArrayList<Edge> edges, boolean is_root) {
         in_edges = new ArrayList<>();
@@ -68,28 +70,29 @@ public class Dijkstra {
             
             distance_from_root = Math.min(distance_from_root, distance);
             if(nodes_left > 0){
-                
+                if(out_edges.size() == 0){
+
+                }
             }
             else {
                 String ack = round_number + "," + distance_from_root;
                 for(Edge e: in_edges){
-                    if(!e.terminated){
-                        Message ack_message = new Message(id, e.src, Message.MessageTag.TAG_1, ack);
-                        comm_node.send("localhost", e.src, ack_message);
-                    }
+                    Message ack_message = new Message(id, e.src, Message.MessageTag.TAG_1, ack);
+                    comm_node.send("localhost", e.src, ack_message);
                 }
             }
 
             
         }
         else if(tag == Message.MessageTag.TAG_1) { /* Receive an Ack message. */
-            String data = message.getData();
-            String[] parts = data.split(",");
-            int distance = Integer.parseInt(parts[0]);
-            int nodes_left = Integer.parseInt(parts[1]);
-            int round_number = Integer.parseInt(parts[2]);
-            
-            distance_from_root = Math.min(distance_from_root, distance);
+            ack_message_queue.add(message);
+
+            if(ack_message_queue.size() == out_edges.size()){ /* Pass acks to predecessor edges. */
+                for(Edge e: in_edges){
+                    Message ack_message = new Message(id, e.src, Message.MessageTag.TAG_3, "");
+                    comm_node.send("localhost", e.src + 1080, ack_message);
+                }
+            }
         }
         else if(tag == Message.MessageTag.TAG_2) { /* Receive a Broadcast message. */
             String data = message.getData();
