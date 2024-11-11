@@ -65,7 +65,10 @@ public class DistributedNode implements Runnable {
                 String message = messageQueue.poll(1, TimeUnit.SECONDS);
                 if (message != null) {
                     System.out.println("Received message: " + message);
-                    messageHandler.apply(Message.fromString(message));
+                    Integer finish = messageHandler.apply(Message.fromString(message));
+                    if(finish == 1){
+                        running = false;
+                    }
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();

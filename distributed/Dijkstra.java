@@ -2,7 +2,6 @@ package distributed;
 
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.lang.*;
 
 import distributed.Message.MessageTag;
 
@@ -14,9 +13,11 @@ public class Dijkstra {
 
     public int n;
 
+    public boolean terminated;
+
     protected ArrayList<Edge> in_edges;
     protected ArrayList<Edge> out_edges;
-    protected ArrayList<Integer> bfs_children_ids;
+    protected HashSet<Integer> bfs_children_ids;
 
     protected DistributedNode comm;
 
@@ -29,11 +30,15 @@ public class Dijkstra {
     private int sssp_parent_id;
 
     private int bfs_parent_id;
+
+    private int root_id;
     
-    public Dijkstra(int id, int n, ArrayList<Edge> edges) throws IllegalArgumentException {
+    public Dijkstra(int id, int n, int root_id, ArrayList<Edge> edges) throws IllegalArgumentException {
         this.id = id;
         this.port = id + 8080;
         this.n = n;
+        this.root_id = root_id;
+        this.terminated = false;
 
         for(Edge e : edges){
             if(e.src == e.dest){
@@ -58,15 +63,92 @@ public class Dijkstra {
     public void start(){
         Thread t = new Thread(comm);
         t.start();
+
+        while(!terminated){
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     protected Integer receive(Message msg){
+        Message.MessageTag tag = msg.getTag();
+        String[] msgParts = msg.getData().split("|");
+        switch(tag){
+            case TAG_0: /* Explore. */
+            {
+                int current_layer_exploring = Integer.parseInt(msgParts[0]);
+                int this_distance = Integer.parseInt(msgParts[1]);
+                if(distance_from_root > this_distance){
+                    distance_from_root = this_distance;
+                    sssp_parent_id = getId(msg.getSrcPort());
+                }
+                if(layer == -1){ /* Not discovered yet. */
+                    /* Send back positive ack. */
+                    bfs_parent_id = getId(msg.getSrcPort());
+                    layer = current_layer_exploring;
+                    
+                    String msgString = Integer.toString(1);
+                    Message msgNew = new Message(this.port, msg.getSrcPort(), MessageTag.TAG_1, msgString);
+                    comm.send("localhost", msg.getSrcPort(), msgNew);
+                }
+                else if(layer == current_layer_exploring){ /* Already discovered. */
+                    /* Send negative ack. */
+                    String msgString = Integer.toString(1);
+                    Message msgNew = new Message(this.port, msg.getSrcPort(), MessageTag.TAG_2, msgString);
+                    comm.send("localhost", msg.getSrcPort(), msgNew);
+                }
+                else {
+                    /* Pass message. */
+                    for(Edge e: out_edges){
+                        if(!bfs_children_ids.contains(e.dest)){
+                            continue;
+                        }
+                        String msgString = Integer.toString(current_layer_exploring) + "|" + Integer.toString(this_distance + e.weight);
+                        Message msgNew = new Message(this.port, getPort(e.dest), MessageTag.TAG_0, msgString);
+                        comm.send("localhost", getPort(e.dest), msgNew);
+                    }
+                }
+                break;
+            }
+            case TAG_1: /* Positive ack. */
+            {
+                ackQueue.add(msg);
+                bfs_children_ids.add(getId(msg.getSrcPort()));
+                break;
+            }
+            case TAG_2: /* Negative ack. */
+            {
+                ackQueue.add(msg);
+                bfs_children_ids.remove(getId(msg.getSrcPort()));   
+                break;
+            }
+            case TAG_3: /* Number of children. */
+            {
+                int num_new_children = Integer.parseInt(msg.getData());
+                Message msgNew = new Message(this.port, getPort(bfs_parent_id), MessageTag.TAG_3, Integer.toString(num_new_children));
+                comm.send("localhost", getPort(bfs_parent_id), msgNew);
+                break;
+            }
+            case TAG_4:
+            {
+                String msgString = Integer.toString(bfs_parent_id) + "|" + Integer.toString(distance_from_root) + "|" + Integer.toString(sssp_parent_id);
+                Message msgNew = new Message(this.port, getPort(root_id), MessageTag.TAG_4, msgString);
+                comm.send("localhost", getPort(root_id), msgNew);
+                terminated = true;
+                return 1;
+            }
+            default:
+                break;   
+        }
+        if(sendbackAck()){
+            String msgString = Integer.toString(bfs_children_ids.size());
+            Message msgNew = new Message(this.port, getPort(bfs_parent_id), MessageTag.TAG_3, msgString);
+            comm.send("localhost", getPort(bfs_parent_id), msgNew);
+        }
         return 0;
-    }
-
-    private void sendDistanceToRoot(){
-        Message msg = new Message(this.port, getPort(sssp_parent_id), MessageTag.TAG_7, Integer.toString(this.distance_from_root));
-        comm.send("localhost", getPort(sssp_parent_id), msg);
     }
 
     protected int getPort(int id){
@@ -75,5 +157,12 @@ public class Dijkstra {
 
     protected int getId(int port){
         return port - 8080;
+    }
+
+    private boolean sendbackAck(){
+        if(ackQueue.size() == out_edges.size()){
+            return true;
+        }
+        return false;
     }
 }

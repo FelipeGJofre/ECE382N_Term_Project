@@ -4,16 +4,16 @@ import java.util.ArrayList;
 
 public class DijkstraRoot extends Dijkstra {
 
-    private int current_layer;
+    private int current_layer_exploring;
 
-    private ArrayList<Integer> explored_ids;
+    private int num_ids_explored;
 
     public DijkstraRoot(int id, int n, ArrayList<Edge> edges) throws IllegalArgumentException {
-        super(id, n, edges);
+        super(id, n, id, edges);
         layer = 0;
-        current_layer = 1;
+        current_layer_exploring = 1;
 
-        explored_ids = new ArrayList<>();
+        num_ids_explored = 0;
     }
 
     @Override
@@ -24,8 +24,17 @@ public class DijkstraRoot extends Dijkstra {
         /* Start BFS search for all nodes in the system. */
         for(Edge e : out_edges){
             /* TAG_0 is the exploration message. */
-            Message msg = new Message(this.port, getPort(e.dest), Message.MessageTag.TAG_0, Integer.toString(0));
+            String msgString = Integer.toString(current_layer_exploring) + "|" + Integer.toString(e.weight);
+            Message msg = new Message(this.port, getPort(e.dest), Message.MessageTag.TAG_0, msgString);
             comm.send("localhost", getPort(e.dest), msg);
+        }
+
+        while(!terminated){
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -39,6 +48,16 @@ public class DijkstraRoot extends Dijkstra {
             case TAG_2: /* Ack Negative. */
                 ackQueue.add(msg);
                 break;
+            case TAG_3:
+                int num_new_children = Integer.parseInt(msg.getData());
+                num_ids_explored += num_new_children;
+                break;
+            case TAG_4:
+                /* Received ack from all nodes. */
+                String[] msgParts = msg.getData().split("|");
+                System.out.println("ID " + getId(msg.getSrcPort()) + ": " + msgParts[0] + " " + msgParts[1] + " " + msgParts[2]);
+                terminated = true;
+                return 1;
             default:
                 break;
         }
@@ -50,13 +69,26 @@ public class DijkstraRoot extends Dijkstra {
         /* Check if all nodes in the current layer have been explored. */
         if(ackQueue.size() == out_edges.size()){
             /* Move to the next layer. */
-            current_layer++;
+            current_layer_exploring++;
+            /* Increase the number of nodes explored */
+            num_ids_explored += ackQueue.size();
             /* Reset the ackQueue. */
             ackQueue.clear();
 
+            if(num_ids_explored == n){
+                /* All nodes have been explored. */
+                for(int i = 0; i < n; i++){
+                    Message msg = new Message(this.port, getPort(i), Message.MessageTag.TAG_4, "");
+                    comm.send("localhost", getPort(i), msg);
+                }
+                return false;
+            }
+            
             /* Send messages to all nodes in the next layer. */
             for(Edge e : out_edges){
-                Message msg = new Message(this.port, getPort(e.dest), Message.MessageTag.TAG_0, Integer.toString(current_layer));
+                String msgString = Integer.toString(current_layer_exploring) + "|" + Integer.toString(e.weight);
+                /* Send an explore message. It wil actually explore once it encounters a node in l - 1. */
+                Message msg = new Message(this.port, getPort(e.dest), Message.MessageTag.TAG_0, msgString);
                 comm.send("localhost", getPort(e.dest), msg);
             }
             return true;
