@@ -16,7 +16,7 @@ public class DistributedNode implements Runnable {
     private volatile AtomicBoolean already_shutdown = new AtomicBoolean(false);
     
     private ServerSocket serverSocket;
-    private final BlockingQueue<String> messageQueue;
+    private BlockingQueue<String> messageQueue;
     private final ExecutorService executorService;
 
     private final Function<Message, Integer> messageHandler;
@@ -67,7 +67,7 @@ public class DistributedNode implements Runnable {
     private void processMessages() {
         while (running.get()) {
             try {
-                String message = messageQueue.poll(1, TimeUnit.SECONDS);
+                String message = messageQueue.take();
                 if (message != null) {
                     // System.out.println("Received message: " + message);
                     num_messages_recv++;
@@ -91,6 +91,7 @@ public class DistributedNode implements Runnable {
             PrintWriter writer = new PrintWriter(socket.getOutputStream(), true)) {
                 String charMsg = message.toString();
                 writer.println(charMsg);
+                System.out.print("Sending msg " + charMsg);
         } catch (IOException e) {
             System.err.println("Error sending message: " + e.getMessage());
         }
