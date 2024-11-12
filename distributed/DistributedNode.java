@@ -41,7 +41,11 @@ public class DistributedNode implements Runnable {
                 executorService.submit(() -> handleConnection(clientSocket));
             }
         } catch (IOException e) {
-            System.err.println("Error in node operation: " + e.getMessage());
+            if(e.getMessage().equals("Socket closed")){
+                System.out.println("Node shutdown.");
+            } else {
+                System.err.println("Error starting node: " + e.getMessage());
+            }
         } finally {
             shutdown();
         }
@@ -75,9 +79,13 @@ public class DistributedNode implements Runnable {
                 break;
             }
         }
+
+        System.out.println("Message processing stopped.");
+        shutdown();
     }
 
     public void send(String destinationHost, int destinationPort, Message message) {
+        System.out.println("Sending message: " + message.toString());
         try (Socket socket = new Socket(destinationHost, destinationPort); 
             PrintWriter writer = new PrintWriter(socket.getOutputStream(), true)) {
                 String charMsg = message.toString();
@@ -97,5 +105,7 @@ public class DistributedNode implements Runnable {
         } catch (IOException e) {
             System.err.println("Error closing server socket: " + e.getMessage());
         }
+
+        System.out.println("Node shutdown.");
     }
 }

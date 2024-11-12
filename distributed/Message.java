@@ -38,7 +38,7 @@ public class Message {
 
     @Override
     public String toString() {
-        return srcPort + "," + destPort + "," + tag + "," + data + "\r\n";
+        return srcPort + "," + destPort + "," + tag + "," + data;
     }
 
     public MessageTag getTag() {

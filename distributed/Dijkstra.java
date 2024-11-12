@@ -5,7 +5,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import distributed.Message.MessageTag;
 
-public class Dijkstra {
+public class Dijkstra extends Thread{
 
     public int id;
 
@@ -15,9 +15,9 @@ public class Dijkstra {
 
     public boolean terminated;
 
-    protected ArrayList<Edge> in_edges;
-    protected ArrayList<Edge> out_edges;
-    protected HashSet<Integer> bfs_children_ids;
+    protected ArrayList<Edge> in_edges = new ArrayList<Edge>();
+    protected ArrayList<Edge> out_edges = new ArrayList<Edge>();
+    protected HashSet<Integer> bfs_children_ids = new HashSet<Integer>();
 
     protected DistributedNode comm;
 
@@ -60,7 +60,8 @@ public class Dijkstra {
         layer = -1;
     }
 
-    public void start(){
+    @Override
+    public void run(){
         Thread t = new Thread(comm);
         t.start();
 
@@ -71,11 +72,17 @@ public class Dijkstra {
                 e.printStackTrace();
             }
         }
+
+        System.out.println("Dijkstra has terminated.");
+    }
+
+    public void shutdown(){
+        comm.shutdown();
     }
 
     protected Integer receive(Message msg){
         Message.MessageTag tag = msg.getTag();
-        String[] msgParts = msg.getData().split("|");
+        String[] msgParts = msg.getData().split("@");
         switch(tag){
             case TAG_0: /* Explore. */
             {
@@ -85,28 +92,27 @@ public class Dijkstra {
                     distance_from_root = this_distance;
                     sssp_parent_id = getId(msg.getSrcPort());
                 }
+                
                 if(layer == -1){ /* Not discovered yet. */
                     /* Send back positive ack. */
                     bfs_parent_id = getId(msg.getSrcPort());
                     layer = current_layer_exploring;
                     
-                    String msgString = Integer.toString(1);
+                    String msgString = Integer.toString(layer); /* Current layer. */
                     Message msgNew = new Message(this.port, msg.getSrcPort(), MessageTag.TAG_1, msgString);
                     comm.send("localhost", msg.getSrcPort(), msgNew);
+                    
                 }
                 else if(layer == current_layer_exploring){ /* Already discovered. */
                     /* Send negative ack. */
-                    String msgString = Integer.toString(1);
+                    String msgString = Integer.toString(layer);
                     Message msgNew = new Message(this.port, msg.getSrcPort(), MessageTag.TAG_2, msgString);
                     comm.send("localhost", msg.getSrcPort(), msgNew);
                 }
                 else {
                     /* Pass message. */
                     for(Edge e: out_edges){
-                        if(!bfs_children_ids.contains(e.dest)){
-                            continue;
-                        }
-                        String msgString = Integer.toString(current_layer_exploring) + "|" + Integer.toString(this_distance + e.weight);
+                        String msgString = Integer.toString(current_layer_exploring) + "@" + Integer.toString(this_distance + e.weight);
                         Message msgNew = new Message(this.port, getPort(e.dest), MessageTag.TAG_0, msgString);
                         comm.send("localhost", getPort(e.dest), msgNew);
                     }
@@ -134,7 +140,7 @@ public class Dijkstra {
             }
             case TAG_4:
             {
-                String msgString = Integer.toString(bfs_parent_id) + "|" + Integer.toString(distance_from_root) + "|" + Integer.toString(sssp_parent_id);
+                String msgString = Integer.toString(bfs_parent_id) + "@" + Integer.toString(distance_from_root) + "@" + Integer.toString(sssp_parent_id);
                 Message msgNew = new Message(this.port, getPort(root_id), MessageTag.TAG_4, msgString);
                 comm.send("localhost", getPort(root_id), msgNew);
                 terminated = true;

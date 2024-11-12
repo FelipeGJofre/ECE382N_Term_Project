@@ -1,6 +1,7 @@
 package distributed;
 
 import java.lang.Integer;
+import java.util.ArrayList;
 public class Main{
 
     public static Integer handler(Message message){
@@ -8,14 +9,22 @@ public class Main{
         return 0;
     }
     public static void main(String[] args) {
+        
+        ArrayList<Edge> edges = new ArrayList<Edge>();
+        edges.add(new Edge(0, 1, 1));
+        edges.add(new Edge(1, 2, 2));
+        edges.add(new Edge(2, 0, 3));
+        edges.add(new Edge(0, 3, 4));
+        
         // Create three nodes on different ports
-        DistributedNode[] nodes = new DistributedNode[3];
+        Dijkstra[] nodes = new Dijkstra[3];
+        DijkstraRoot root = new DijkstraRoot(0, 4, edges);
+        Thread rootThread = new Thread(root);
         Thread[] nodeThreads = new Thread[3];
         
         // Initialize and start nodes
         for (int i = 0; i < 3; i++) {
-            final int port = 8080 + i;
-            nodes[i] = new DistributedNode("localhost", port, Main::handler);
+            nodes[i] = new Dijkstra(i + 1, 4, 0, edges);
             nodeThreads[i] = new Thread(nodes[i]);
             nodeThreads[i].start();
         }
@@ -26,44 +35,8 @@ public class Main{
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        
-        // Demonstrate message passing between nodes
-        try {
-            
-            Message msg = new Message(8080, 8081, Message.MessageTag.TAG_0, "Hello from Node 0 to Node 1!");
-            // Node 0 sends message to Node 1
-            nodes[0].send("localhost", 8081, msg);
-            Thread.sleep(500);
-            
-            msg = new Message(8081, 8082, Message.MessageTag.TAG_0, "Hello from Node 1 to Node 2!");
-            // Node 1 sends message to Node 2
-            nodes[1].send("localhost", 8082, msg);
-            Thread.sleep(500);
-            
-            msg = new Message(8082, 8080, Message.MessageTag.TAG_0, "Hello from Node 2 to Node 0!");
-            // Node 2 sends message to Node 0
-            nodes[2].send("localhost", 8080, msg);
-            Thread.sleep(500);
 
-            // Broadcast from Node 0 to all other nodes
-            System.out.println("\nBroadcasting message from Node 0:");
-            for (int i = 1; i < nodes.length; i++) {
-                msg = new Message(8080, 8080 + i, Message.MessageTag.TAG_0, "Broadcast message from Node 0!");
-                nodes[0].send("localhost", 8080 + i, msg);
-            }
-
-            // Keep the system running for a while to observe messages
-            Thread.sleep(2000);
-
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } finally {
-            // Shutdown all nodes
-            System.out.println("\nShutting down all nodes...");
-            for (DistributedNode node : nodes) {
-                node.shutdown();
-            }
-        }
+        rootThread.start();
     }
 }
 
