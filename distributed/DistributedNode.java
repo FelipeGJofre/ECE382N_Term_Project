@@ -10,6 +10,9 @@ public class DistributedNode implements Runnable {
     private final int port;
     private final String host;
     private volatile boolean running;
+    private volatile int num_messages_sent = 0;
+    private volatile int num_messages_recv = 0;
+    private volatile boolean already_shutdown = false;
     
     private ServerSocket serverSocket;
     private final BlockingQueue<String> messageQueue;
@@ -69,6 +72,7 @@ public class DistributedNode implements Runnable {
                 String message = messageQueue.poll(1, TimeUnit.SECONDS);
                 if (message != null) {
                     System.out.println("Received message: " + message);
+                    num_messages_recv++;
                     Integer finish = messageHandler.apply(Message.fromString(message));
                     if(finish == 1){
                         running = false;
@@ -86,6 +90,7 @@ public class DistributedNode implements Runnable {
 
     public void send(String destinationHost, int destinationPort, Message message) {
         System.out.println("Sending message: " + message.toString());
+        num_messages_sent++;
         try (Socket socket = new Socket(destinationHost, destinationPort); 
             PrintWriter writer = new PrintWriter(socket.getOutputStream(), true)) {
                 String charMsg = message.toString();
@@ -106,6 +111,12 @@ public class DistributedNode implements Runnable {
             System.err.println("Error closing server socket: " + e.getMessage());
         }
 
-        System.out.println("Node shutdown.");
+        if(!already_shutdown)
+        {
+            System.out.println("Node shutdown.");
+            System.out.println("Node: " + port + ", Sent: " + num_messages_sent + ", Recv: " + num_messages_recv);
+            already_shutdown = true;
+        }
+        
     }
 }
