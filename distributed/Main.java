@@ -5,41 +5,20 @@ import java.util.ArrayList;
 public class Main{
     public static void main(String[] args) {
         
-        ArrayList<Edge> edges = new ArrayList<Edge>();
-        edges.add(new Edge(0, 1, 1));
-        edges.add(new Edge(1, 2, 2));
-        edges.add(new Edge(2, 0, 3));
-        edges.add(new Edge(0, 3, 4));
+        String test_case = "Texas";
         
-        // // Create three nodes on different ports
-        // Dijkstra[] nodes = new Dijkstra[3];
-        // DijkstraRoot root = new DijkstraRoot(0, 4, edges);
-        // Thread rootThread = new Thread(root);
-        // Thread[] nodeThreads = new Thread[3];
-        
-        // // Initialize and start nodes
-        // for (int i = 0; i < 3; i++) {
-        //     nodes[i] = new Dijkstra(i + 1, 4, 0, edges);
-        //     nodeThreads[i] = new Thread(nodes[i]);
-        //     nodeThreads[i].start();
-        // }
+        Examples cases = new Examples(true, 20);
+        ArrayList<Edge> edges = cases.getExample(test_case);
+        int num_nodes = cases.getNumNodes(test_case);
+        int num_regular_nodes = num_nodes - 1;
 
-        // // Wait for nodes to initialize
-        // try {
-        //     Thread.sleep(1000);
-        // } catch (InterruptedException e) {
-        //     e.printStackTrace();
-        // }
-
-        // rootThread.start();
-
-        Chandy[] nodes = new Chandy[3];
-        ChandyRoot root = new ChandyRoot(0, 4, edges);
+        Chandy[] nodes = new Chandy[num_regular_nodes];
+        ChandyRoot root = new ChandyRoot(0, num_nodes, edges);
         Thread rootThread = new Thread(root);
-        Thread[] nodeThreads = new Thread[3];
+        Thread[] nodeThreads = new Thread[num_regular_nodes];
 
-        for (int i = 0; i < 3; i++) {
-            nodes[i] = new Chandy(i + 1, 0, 4, edges);
+        for (int i = 0; i < num_regular_nodes; i++) {
+            nodes[i] = new Chandy(i + 1, 0, num_nodes, edges);
             nodeThreads[i] = new Thread(nodes[i]);
             nodeThreads[i].start();
         }
@@ -54,7 +33,7 @@ public class Main{
 
         try {
             rootThread.join();
-            for(int i = 0; i < 3; i++){
+            for(int i = 0; i < nodeThreads.length; i++){
                 nodeThreads[i].join();
             }
         }
