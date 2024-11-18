@@ -5,14 +5,15 @@ import java.lang.Integer;
 import java.io.*;
 import java.net.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class DistributedNode implements Runnable {
     private final int port;
     private final String host;
-    private volatile boolean running;
+    private volatile AtomicBoolean running = new AtomicBoolean(true);
     private volatile int num_messages_sent = 0;
     private volatile int num_messages_recv = 0;
-    private volatile boolean already_shutdown = false;
+    private volatile AtomicBoolean already_shutdown = new AtomicBoolean(false);
     
     private ServerSocket serverSocket;
     private final BlockingQueue<String> messageQueue;
@@ -25,7 +26,6 @@ public class DistributedNode implements Runnable {
         this.port = port; 
         this.messageQueue = new LinkedBlockingQueue<>();
         this.executorService = Executors.newFixedThreadPool(2);
-        this.running = true;
         this.messageHandler = messageHandler;
     }
 
@@ -39,14 +39,12 @@ public class DistributedNode implements Runnable {
             /* Have two threads: one processes messages' data, other receives messages from socket. */
             executorService.submit(this::processMessages);
 
-            while (running) {
+            while (running.get()) {
                 Socket clientSocket = serverSocket.accept();
                 executorService.submit(() -> handleConnection(clientSocket));
             }
         } catch (IOException e) {
-            if(e.getMessage().equals("Socket closed")){
-                System.out.println("Node shutdown.");
-            } else {
+            if(!e.getMessage().equals("Socket closed")){
                 System.err.println("Error starting node: " + e.getMessage());
             }
         } finally {
@@ -67,15 +65,15 @@ public class DistributedNode implements Runnable {
     }
 
     private void processMessages() {
-        while (running) {
+        while (running.get()) {
             try {
                 String message = messageQueue.poll(1, TimeUnit.SECONDS);
                 if (message != null) {
-                    System.out.println("Received message: " + message);
+                    // System.out.println("Received message: " + message);
                     num_messages_recv++;
                     Integer finish = messageHandler.apply(Message.fromString(message));
                     if(finish == 1){
-                        running = false;
+                        running.set(false);
                     }
                 }
             } catch (InterruptedException e) {
@@ -83,8 +81,6 @@ public class DistributedNode implements Runnable {
                 break;
             }
         }
-
-        System.out.println("Message processing stopped.");
         shutdown();
     }
 
@@ -101,7 +97,7 @@ public class DistributedNode implements Runnable {
     }
 
     public void shutdown() {
-        running = false;
+        running.set(false);
         executorService.shutdownNow();
         try {
             if (serverSocket != null && !serverSocket.isClosed()) {
@@ -111,11 +107,11 @@ public class DistributedNode implements Runnable {
             System.err.println("Error closing server socket: " + e.getMessage());
         }
 
-        if(!already_shutdown)
+        if(already_shutdown.get() == false)
         {
+            already_shutdown.set(true);
             System.out.println("Node shutdown.");
             System.out.println("Node: " + port + ", Sent: " + num_messages_sent + ", Recv: " + num_messages_recv);
-            already_shutdown = true;
         }
         
     }

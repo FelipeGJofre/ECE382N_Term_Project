@@ -64,6 +64,7 @@ public class ChandyRoot extends Chandy {
         }
 
         System.out.println("ChandyRoot is terminating");
+        comm.shutdown();
     }
 
     @Override
@@ -84,7 +85,7 @@ public class ChandyRoot extends Chandy {
                     /* Negative Cycle Detected, so start phase II. */
                     for(Edge e: out_edges){
                         /* Send Over- messages to all successors. */
-                        Message over = new Message(convertToPort(id), convertToPort(e.dest), MessageTag.TAG_2, "ACK");
+                        Message over = new Message(convertToPort(id), convertToPort(e.dest), MessageTag.TAG_2, "OVER-");
                         comm.send("localhost", over.getDestPort(), over);
                     }
                 }
@@ -126,7 +127,6 @@ public class ChandyRoot extends Chandy {
                 int distance_from_root = Integer.parseInt(parts[0]);
                 int parent_id = Integer.parseInt(parts[1]);
                 results.set(sender_id, new Result(distance_from_root, parent_id));
-                // System.out.println("ID: " + sender_id + " ,Distance: " + distance_from_root + " ,Parent: " + parent_id);
                 if(++num_final_recv == num_processors){
                     completeTermination();
                 }
@@ -142,7 +142,6 @@ public class ChandyRoot extends Chandy {
     protected void completeTermination()
     {
         results.set(id, new Result(0, -1));
-        // System.out.println("ID: " + id + " ,Distance: " + 0 + " ,Parent: " + -1);
         termination_state = true;
     }
 }

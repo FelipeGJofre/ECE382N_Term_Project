@@ -60,6 +60,7 @@ public class Chandy implements Runnable {
         }
 
         System.out.println("Chandy has terminated.");
+        comm.shutdown();
     }
 
     protected Integer receive(Message message){
@@ -75,9 +76,9 @@ public class Chandy implements Runnable {
                 int possible_path_distance = Integer.parseInt(parts[0]);
                 int possible_parent_id = Integer.parseInt(parts[1]);
                 if(distance_from_root > possible_path_distance){
-                    /* Send ack to parent. */
+                    /* Send ack to old parent if not done so already. */
                     if(num > 0){
-                        Message ack = new Message(convertToPort(id), convertToPort(possible_parent_id), MessageTag.TAG_1, "ACK");
+                        Message ack = new Message(convertToPort(id), convertToPort(parent_id), MessageTag.TAG_1, "ACK");
                         comm.send("localhost", ack.getDestPort(), ack);
                     }
                     
