@@ -6,19 +6,26 @@ public class Main{
     public static void main(String[] args) {
         
         String test_case = "Texas";
+        int root_id = 0;
         
         Examples cases = new Examples(true, 20);
         ArrayList<Edge> edges = cases.getExample(test_case);
         int num_nodes = cases.getNumNodes(test_case);
-        int num_regular_nodes = num_nodes - 1;
 
-        Chandy[] nodes = new Chandy[num_regular_nodes];
-        ChandyRoot root = new ChandyRoot(0, num_nodes, edges);
-        Thread rootThread = new Thread(root);
-        Thread[] nodeThreads = new Thread[num_regular_nodes];
+        if(num_nodes == -1 || root_id >= num_nodes){
+            System.out.println("Invalid test case");
+            return;
+        } 
 
-        for (int i = 0; i < num_regular_nodes; i++) {
-            nodes[i] = new Chandy(i + 1, 0, num_nodes, edges);
+        Chandy[] nodes = new Chandy[num_nodes];
+        Thread[] nodeThreads = new Thread[num_nodes];
+        nodes[root_id] = new ChandyRoot(root_id, num_nodes, edges);
+        nodeThreads[root_id] = new Thread(nodes[root_id]);
+        for (int i = 0; i < num_nodes; i++) {
+            if (i == root_id) {
+                continue;
+            }
+            nodes[i] = new Chandy(i, root_id, num_nodes, edges);
             nodeThreads[i] = new Thread(nodes[i]);
             nodeThreads[i].start();
         }
@@ -28,12 +35,14 @@ public class Main{
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
-        rootThread.start();
+        nodeThreads[root_id].start();
 
         try {
-            rootThread.join();
+            nodeThreads[root_id].join();
             for(int i = 0; i < nodeThreads.length; i++){
+                if(i == root_id){
+                    continue;
+                }
                 nodeThreads[i].join();
             }
         }
@@ -41,6 +50,7 @@ public class Main{
             e.printStackTrace();
         }
         finally {
+            ChandyRoot root = (ChandyRoot) nodes[root_id];
             ArrayList<ChandyRoot.Result> final_results = root.getResults();
             for(int i = 0; i < final_results.size(); i++){
                 System.out.print("ID: " + i + ", ");

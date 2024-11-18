@@ -124,8 +124,7 @@ public class Examples {
     private void Texas(){
         ArrayList<Edge> edges = new ArrayList<Edge>();
         /* Start with the big 4 cause I can't. */
-        edges.add(new Edge(TexasNode.HOUSTON.getValue(), TexasNode.DALLAS.getValue(), 7));
-        edges.add(new Edge(TexasNode.DALLAS.getValue(), TexasNode.HOUSTON.getValue(), 7));
+        addBidirectionalEdge(edges, TexasNode.HOUSTON.getValue(), TexasNode.DALLAS.getValue(), 7);
 
         edges.add(new Edge(TexasNode.HOUSTON.getValue(), TexasNode.SAN_ANTONIO.getValue(), 7));
         edges.add(new Edge(TexasNode.SAN_ANTONIO.getValue(), TexasNode.HOUSTON.getValue(), 7));
@@ -166,5 +165,10 @@ public class Examples {
             new_weight = 1;
         
         return new_weight;
+    }
+
+    private void addBidirectionalEdge(ArrayList<Edge> edges, int src, int dest, int weight){
+        edges.add(new Edge(src, dest, weight));
+        edges.add(new Edge(dest, src, weight));
     }
 }
