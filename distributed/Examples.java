@@ -154,19 +154,6 @@ public class Examples {
         num_nodes.put("Texas", TexasNode.MAX_VALUE.getValue());
     }
 
-    private int generateRandomWeight(){
-        int new_weight = 0;
-        if(allow_negative_weights)
-            new_weight = rand.nextInt(2 * max_magnitude_weights) - max_magnitude_weights;
-        else
-            new_weight = rand.nextInt(max_magnitude_weights);
-        
-        if(new_weight == 0)
-            new_weight = 1;
-        
-        return new_weight;
-    }
-
     private void addBidirectionalEdge(ArrayList<Edge> edges, int src, int dest, int weight){
         edges.add(new Edge(src, dest, weight));
         edges.add(new Edge(dest, src, weight));
