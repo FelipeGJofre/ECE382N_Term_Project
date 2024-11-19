@@ -24,6 +24,10 @@ public class Chandy implements Runnable {
     private int parent_id = -1;
 
     private int root_id;
+
+    public int num_messages_recv = 0;
+    
+    public int num_messages_sent = 0;
     
     public Chandy(int id, int root_id, int n, ArrayList<Edge> edges) {
         this.id = id;
@@ -47,19 +51,22 @@ public class Chandy implements Runnable {
     
     @Override
     public void run() {
-        System.out.println("Chandy is running");
         Thread t = new Thread(comm);
         t.start();
 
+        long start_time = System.nanoTime();
         while(!termination_state){
             try {
-                Thread.sleep(1000);
+                Thread.sleep(10);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
 
-        System.out.println("Chandy has terminated.");
+        long end_time = System.nanoTime();
+        long duration = (end_time - start_time) / 1000000;
+        System.out.println(this.id + " Time taken: " + duration + " ms");
+        // System.out.println("Chandy has terminated.");
         comm.shutdown();
     }
 
@@ -164,13 +171,15 @@ public class Chandy implements Runnable {
         }
         return termination_state ? 1: 0;
     }
-
+    
     protected void completeTermination()
     {
         String resultStr = distance_from_root + "@" + parent_id;
         Message result = new Message(convertToPort(id), convertToPort(root_id), MessageTag.TAG_4, resultStr);
         comm.send("localhost", result.getDestPort(), result);
         termination_state = true;
+        num_messages_sent = comm.getNumMessagesSent();
+        num_messages_recv = comm.getNumMessagesRecv();
     }
 
     protected int convertToPort(int id){

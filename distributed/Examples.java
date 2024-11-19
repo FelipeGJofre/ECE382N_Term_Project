@@ -16,11 +16,16 @@ public class Examples {
 
     private int max_magnitude_weights;
 
-    public Examples(boolean allow_negative_weights, int max_magnitude_weights){
+    private int max_nodes;
+
+    public Examples(boolean allow_negative_weights, int max_magnitude_weights, int n){
         this.allow_negative_weights = allow_negative_weights;
         this.max_magnitude_weights = max_magnitude_weights;
+        this.max_nodes = n;
         
         Line();
+        RandomLine();
+        StronglyConnected();
         Triangle();
         NegCycle();
         NegCycle2();
@@ -41,6 +46,14 @@ public class Examples {
             return num_nodes.get(example);
     }
 
+    private int generateRandomWeight(){
+        int weight = rand.nextInt(max_magnitude_weights);
+        if(allow_negative_weights){
+            weight = weight * (rand.nextBoolean() ? 1 : -1);
+        }
+        return weight;
+    }
+
     private void Line(){
         ArrayList<Edge> edges = new ArrayList<Edge>();
         ArrayList<Integer> weights = new ArrayList<>(Arrays.asList(-1, 2, -3, 4, -5, 6, -7, 8));
@@ -50,6 +63,28 @@ public class Examples {
         }
         examples.put("Line", edges);
         num_nodes.put("Line", edges.size() + 1);
+    }
+
+    private void RandomLine(){
+        ArrayList<Edge> edges = new ArrayList<Edge>();
+        for(int i = 0; i < max_nodes - 1; i++){
+            edges.add(new Edge(i, i + 1, generateRandomWeight()));
+        }
+        examples.put("RandomLine", edges);
+        num_nodes.put("RandomLine", max_nodes);
+    }
+
+    private void StronglyConnected(){
+        ArrayList<Edge> edges = new ArrayList<Edge>();
+        for(int i = 0; i < max_nodes; i++){
+            for(int j = 0; j < max_nodes; j++){
+                if(i != j){
+                    edges.add(new Edge(i, j, generateRandomWeight()));
+                }
+            }
+        }
+        examples.put("StronglyConnected", edges);
+        num_nodes.put("StronglyConnected", max_nodes);
     }
 
     /* Creates 4 nodes, 3 making a triangle, and the root node in the center. */

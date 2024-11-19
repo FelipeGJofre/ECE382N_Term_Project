@@ -11,13 +11,11 @@ public class BellmanFord_Wrapper {
     public void start(int n, ArrayList<Edge> edges){
         
         root = new BellmanFordRoot(n, edges);
-        // System.out.println("Root created!");
         Thread root_thread = new Thread(root);
         root_thread.start();
         nodes = new ArrayList<>();
         for(int i = 1; i < n; i++){
             BellmanFord test = new BellmanFord(i, n, edges);
-            // System.out.println("Node " + Integer.toString(i) + " created!");
             nodes.add(test);
             Thread thread = new Thread(test);
             thread.start();
@@ -27,5 +25,11 @@ public class BellmanFord_Wrapper {
         } catch(InterruptedException e){}
         ArrayList<Integer> paths = root.get_shortest_path();
         System.out.println(paths.toString());
+
+        int numMsgsSent = root.num_messages_sent;
+        for(BellmanFord node : nodes){
+            numMsgsSent += node.num_messages_sent;
+        }
+        System.out.println("Total number of messages sent: " + numMsgsSent);
     }
 }

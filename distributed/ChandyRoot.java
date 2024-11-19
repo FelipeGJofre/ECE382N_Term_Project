@@ -44,10 +44,10 @@ public class ChandyRoot extends Chandy {
     
     @Override
     public void run() {
-        System.out.println("ChandyRoot is running");
         Thread t = new Thread(comm);
         t.start();
 
+        long start_time = System.nanoTime();
         /* Initiate Phase 1 */
         for(Edge e : out_edges){
             String msgString = e.weight + "@" + id;
@@ -57,13 +57,16 @@ public class ChandyRoot extends Chandy {
 
         while(!termination_state){
             try {
-                Thread.sleep(1000);
+                Thread.sleep(10);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
 
-        System.out.println("ChandyRoot is terminating");
+        long end_time = System.nanoTime();
+        long duration = (end_time - start_time) / 1000000;
+        System.out.println(this.id + ": Time taken: " + duration + " ms");
+        // System.out.println("ChandyRoot is terminating");
         comm.shutdown();
     }
 
@@ -143,5 +146,7 @@ public class ChandyRoot extends Chandy {
     {
         results.set(id, new Result(0, -1));
         termination_state = true;
+        num_messages_sent = comm.getNumMessagesSent();
+        num_messages_recv = comm.getNumMessagesRecv();
     }
 }

@@ -18,6 +18,9 @@ public int id;
     private int my_distance_from_root;
     protected boolean termination_state = false;
 
+    public int num_messages_recv = 0;
+    public int num_messages_sent = 0;
+
     
     public BellmanFord(int id, int n, ArrayList<Edge> edges) throws IllegalArgumentException {
         this.id = id;
@@ -40,7 +43,6 @@ public int id;
         }
         this.my_distance_from_root = Integer.MAX_VALUE;
         comm = new DistributedNode("localhost", port, this::receive);
-        // System.out.println("At start from thread " + this.id + " :" + this.weight_pred.toString());
     }
 
     @Override
@@ -48,6 +50,7 @@ public int id;
         Thread t = new Thread(comm);
         t.start();
 
+        long start_time = System.nanoTime();
         while(!termination_state){
            try {
                Thread.sleep(10);
@@ -63,8 +66,15 @@ public int id;
             e.printStackTrace();
         }
         finally {
-            System.out.println("BellmanFord Thread " + this.id + " has terminated.");
+            long end_time = System.nanoTime();
+            long time_taken = (end_time - start_time) / 1000000; // ms
+            // System.out.println("BellmanFord Thread " + this.id + " has terminated.");
+            System.out.println(this.id + ": Time taken: " + time_taken + " ms.");
+
+            num_messages_sent = comm.getNumMessagesSent();
+            num_messages_recv = comm.getNumMessagesRecv();
         }
+        
     }
 
     public Integer receive(Message msg){
@@ -83,10 +93,8 @@ public int id;
                 break;
             }
             case TAG_1:
-                System.out.println("This is muy bad.");
                 break;
             case TAG_2:
-                System.out.println("New Weight from " + getId(msg.getSrcPort()) + " of weight " + msg.getData() + " in thread " + this.id);
                 for(int i = 0; i < this.in_edges.size(); i++){
                     if(this.in_edges.get(i).src == getId(msg.getSrcPort())){
                         this.weight_pred.set(i, Integer.valueOf(msg.getData()));
@@ -98,10 +106,8 @@ public int id;
                 break;
         
             default:
-            System.out.println("Something has gone horribly wrong!");
                 break;
         }
-        System.out.println("From thread " + this.id + ":" + this.weight_pred.toString());
         return termination_state ? 1: 0;
     }
 

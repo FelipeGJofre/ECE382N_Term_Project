@@ -34,7 +34,7 @@ public class DistributedNode implements Runnable {
         try {
             /* We use a server socket as a global socket (i.e., anyone can connect). */
             serverSocket = new ServerSocket(port);
-            System.out.println("Node started on port: " + port);
+            // System.out.println("Node started on port: " + port);
 
             /* Have two threads: one processes messages' data, other receives messages from socket. */
             executorService.submit(this::processMessages);
@@ -45,7 +45,7 @@ public class DistributedNode implements Runnable {
             }
         } catch (IOException e) {
             if(!e.getMessage().equals("Socket closed")){
-                System.err.println("Error starting node: " + e.getMessage());
+               // System.err.println("Error starting node: " + e.getMessage());
             }
         } finally {
             shutdown();
@@ -60,7 +60,7 @@ public class DistributedNode implements Runnable {
                 messageQueue.put(message);
             }
         } catch (IOException | InterruptedException e) {
-            System.err.println("Error handling connection: " + e.getMessage());
+            // System.err.println("Error handling connection: " + e.getMessage());
         }
     }
 
@@ -85,14 +85,14 @@ public class DistributedNode implements Runnable {
     }
 
     public void send(String destinationHost, int destinationPort, Message message) {
-        System.out.println("Sending message: " + message.toString());
+        // System.out.println("Sending message: " + message.toString());
         num_messages_sent++;
         try (Socket socket = new Socket(destinationHost, destinationPort); 
             PrintWriter writer = new PrintWriter(socket.getOutputStream(), true)) {
                 String charMsg = message.toString();
                 writer.println(charMsg);
         } catch (IOException e) {
-            System.err.println("Error sending message: " + e.getMessage());
+            // System.err.println("Error sending message: " + e.getMessage());
         }
     }
 
@@ -104,15 +104,22 @@ public class DistributedNode implements Runnable {
                 serverSocket.close();
             }
         } catch (IOException e) {
-            System.err.println("Error closing server socket: " + e.getMessage());
+            // System.err.println("Error closing server socket: " + e.getMessage());
         }
 
         if(already_shutdown.get() == false)
         {
             already_shutdown.set(true);
-            System.out.println("Node shutdown.");
+            // System.out.println("Node shutdown.");
             System.out.println("Node: " + port + ", Sent: " + num_messages_sent + ", Recv: " + num_messages_recv);
-        }
-        
+        }  
+    }
+
+    public int getNumMessagesSent() {
+        return num_messages_sent;
+    }
+
+    public int getNumMessagesRecv() {
+        return num_messages_recv;
     }
 }

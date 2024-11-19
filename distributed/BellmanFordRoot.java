@@ -38,6 +38,7 @@ public class BellmanFordRoot extends BellmanFord {
         // Start algorithm by transmitting source node
         Thread t = new Thread(comm);
         t.start();
+        long start_time = System.nanoTime();
         this.forbidden.set(0, false);
         for(Edge e : this.out_edges){
             Message msg = new Message(this.port, getPort(e.dest), MessageTag.TAG_2, Integer.toString(0)); // Tag 2 is transmit weight
@@ -68,8 +69,6 @@ public class BellmanFordRoot extends BellmanFord {
             }
 
         }
-        System.out.println(this.forbidden.toString());
-
         for(int i = 1; i < this.num_processes; i++){
             Message msg = new Message(this.port, getPort(i), MessageTag.TAG_3, Integer.toString(0)); // Tag 3 is prompt to return value
             comm.send("localhost", getPort(i), msg);
@@ -90,7 +89,13 @@ public class BellmanFordRoot extends BellmanFord {
             e.printStackTrace();
         }
         finally {
-            System.out.println("BellmanFordRoot Thread " + this.id + " has terminated.");
+            long end_time = System.nanoTime();
+            long time_taken = (end_time - start_time) / 1000000; // ms
+            // System.out.println("BellmanFordRoot Thread " + this.id + " has terminated.");
+            System.out.println(this.id + ": Time taken: " + time_taken + " ms.");
+
+            num_messages_sent = comm.getNumMessagesSent();
+            num_messages_recv = comm.getNumMessagesRecv();
         }
     }
 
@@ -102,7 +107,6 @@ public class BellmanFordRoot extends BellmanFord {
     public Integer receive(Message msg){
         switch (msg.getTag()) {
             case TAG_0:
-                System.out.println("Received forbidden check from " + getId(msg.getSrcPort()));
                 if(Integer.valueOf(msg.getData()) == 1){
                     this.forbidden.set(getId(msg.getSrcPort()), true);
                 }
@@ -112,7 +116,6 @@ public class BellmanFordRoot extends BellmanFord {
                 num_ack_forbidden++;
                 break;
             case TAG_1:
-                System.out.println("This is muy bad");
                 break;
 
             case TAG_4:
@@ -122,11 +125,8 @@ public class BellmanFordRoot extends BellmanFord {
                 }
                 break;
             case TAG_2:
-                System.out.println("I send my weight to myself");
                 break;
-
             default:
-                System.out.println("TRYING TO UPDATE ROOTS VALUE");
                 break;
         }
         return termination_state ? 1: 0;
