@@ -91,7 +91,6 @@ public class DistributedNode implements Runnable {
             PrintWriter writer = new PrintWriter(socket.getOutputStream(), true)) {
                 String charMsg = message.toString();
                 writer.println(charMsg);
-                System.out.print("Sending msg " + charMsg);
         } catch (IOException e) {
             System.err.println("Error sending message: " + e.getMessage());
         }

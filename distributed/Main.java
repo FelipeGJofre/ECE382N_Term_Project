@@ -11,51 +11,51 @@ public class Main{
         ArrayList<Edge> edges = cases.getExample(test_case);
         int num_nodes = cases.getNumNodes(test_case);
 
-        if(num_nodes == -1 || root_id >= num_nodes){
-            System.out.println("Invalid test case");
-            return;
-        } 
+        // if(num_nodes == -1 || root_id >= num_nodes){
+        //     System.out.println("Invalid test case");
+        //     return;
+        // } 
 
-        Chandy[] nodes = new Chandy[num_nodes];
-        Thread[] nodeThreads = new Thread[num_nodes];
-        nodes[root_id] = new ChandyRoot(root_id, num_nodes, edges);
-        nodeThreads[root_id] = new Thread(nodes[root_id]);
-        for (int i = 0; i < num_nodes; i++) {
-            if (i == root_id) {
-                continue;
-            }
-            nodes[i] = new Chandy(i, root_id, num_nodes, edges);
-            nodeThreads[i] = new Thread(nodes[i]);
-            nodeThreads[i].start();
-        }
+        // Chandy[] nodes = new Chandy[num_nodes];
+        // Thread[] nodeThreads = new Thread[num_nodes];
+        // nodes[root_id] = new ChandyRoot(root_id, num_nodes, edges);
+        // nodeThreads[root_id] = new Thread(nodes[root_id]);
+        // for (int i = 0; i < num_nodes; i++) {
+        //     if (i == root_id) {
+        //         continue;
+        //     }
+        //     nodes[i] = new Chandy(i, root_id, num_nodes, edges);
+        //     nodeThreads[i] = new Thread(nodes[i]);
+        //     nodeThreads[i].start();
+        // }
         
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        nodeThreads[root_id].start();
+        // try {
+        //     Thread.sleep(1000);
+        // } catch (InterruptedException e) {
+        //     e.printStackTrace();
+        // }
+        // nodeThreads[root_id].start();
 
-        try {
-            nodeThreads[root_id].join();
-            for(int i = 0; i < nodeThreads.length; i++){
-                if(i == root_id){
-                    continue;
-                }
-                nodeThreads[i].join();
-            }
-        }
-        catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        finally {
-            ChandyRoot root = (ChandyRoot) nodes[root_id];
-            ArrayList<ChandyRoot.Result> final_results = root.getResults();
-            for(int i = 0; i < final_results.size(); i++){
-                System.out.print("ID: " + i + ", ");
-                final_results.get(i).println();
-            }
-        }
+        // try {
+        //     nodeThreads[root_id].join();
+        //     for(int i = 0; i < nodeThreads.length; i++){
+        //         if(i == root_id){
+        //             continue;
+        //         }
+        //         nodeThreads[i].join();
+        //     }
+        // }
+        // catch (InterruptedException e) {
+        //     e.printStackTrace();
+        // }
+        // finally {
+        //     ChandyRoot root = (ChandyRoot) nodes[root_id];
+        //     ArrayList<ChandyRoot.Result> final_results = root.getResults();
+        //     for(int i = 0; i < final_results.size(); i++){
+        //         System.out.print("ID: " + i + ", ");
+        //         final_results.get(i).println();
+        //     }
+        // }
 
         // TODO: Add function to translate from ADJ matrix
         
@@ -76,13 +76,8 @@ public class Main{
         final int[] COMPONENTS = {8, 6, 6, 6, 6, 6, 6, 8, 8};
         final int[] SOURCE1_SPATH_COSTS = {INF, 0, 7, 9, 20, 20, 11, INF, INF};
 
-        edges = new ArrayList<Edge>();
-        edges.add(new Edge(0, 1, 1));
-        edges.add(new Edge(1, 2, 2));
-        edges.add(new Edge(2, 0, 3));
-
         BellmanFord_Wrapper program = new BellmanFord_Wrapper();
-        program.start(3, edges);
+        program.start(num_nodes, edges);
     }
 
 }

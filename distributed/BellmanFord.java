@@ -6,8 +6,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Function;
 
 import distributed.Message.MessageTag;
+import distributed.TerminationDetection.termination_state;
 
-public class BellmanFord{
+public class BellmanFord implements Runnable {
     
 public int id;
 
@@ -20,16 +21,12 @@ public int id;
     protected DistributedNode comm;
 
     private int my_distance_from_root;
-
-    private boolean true_start;
-    private boolean sent_forbidden;
+    protected boolean termination_state = false;
 
     
     public BellmanFord(int id, int n, ArrayList<Edge> edges) throws IllegalArgumentException {
         this.id = id;
         this.port = id + 8080;
-        this.true_start = false;
-        this.sent_forbidden = false;
         in_edges = new ArrayList<>();
         out_edges = new ArrayList<>();
         weight_pred = new ArrayList<>();
@@ -51,31 +48,48 @@ public int id;
         // System.out.println("At start from thread " + this.id + " :" + this.weight_pred.toString());
     }
 
-    public void start(){
+    @Override
+    public void run(){
         Thread t = new Thread(comm);
         t.start();
 
-        while(true){
-            // if(this.id != 2) System.out.println("In thread " + this.id + ", true_start is " + this.true_start);
-            if(forbidden()){
-                Message msg = new Message(this.port, getPort(0), MessageTag.TAG_0, Integer.toString(0));    // Tag 0 is forbidden
-                comm.send("localhost", getPort(0), msg);
-                this.sent_forbidden = true;
-                if(this.true_start) advance();
-            }
-            else{
-                if(this.true_start && this.sent_forbidden){
-                    Message msg = new Message(this.port, getPort(0), MessageTag.TAG_1, Integer.toString(0)); // Tag 1 is not forbidden
-                    comm.send("localhost", getPort(0), msg);
-                    this.sent_forbidden = false;
-                }
-            }
+        while(!termination_state){
+           try {
+               Thread.sleep(10);
+           } catch (InterruptedException e) {
+               e.printStackTrace();
+           }
+        }
+        comm.shutdown();
 
+        try {
+            t.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        finally {
+            System.out.println("BellmanFord Thread " + this.id + " has terminated.");
         }
     }
 
     public Integer receive(Message msg){
         switch (msg.getTag()) {
+            case TAG_0:
+            {
+                if(forbidden()){
+                    Message ack = new Message(this.port, getPort(0), MessageTag.TAG_0, String.valueOf(1));    // Tag 0 is forbidden
+                    comm.send("localhost", getPort(0), ack);
+                    advance();
+                }
+                else{
+                    Message ack = new Message(this.port, getPort(0), MessageTag.TAG_0, String.valueOf(0)); // Tag 1 is not forbidden
+                    comm.send("localhost", getPort(0), ack);
+                }
+                break;
+            }
+            case TAG_1:
+                System.out.println("This is muy bad.");
+                break;
             case TAG_2:
                 System.out.println("New Weight from " + getId(msg.getSrcPort()) + " of weight " + msg.getData() + " in thread " + this.id);
                 for(int i = 0; i < this.in_edges.size(); i++){
@@ -93,7 +107,7 @@ public int id;
                 break;
         }
         System.out.println("From thread " + this.id + ":" + this.weight_pred.toString());
-        return 0;
+        return termination_state ? 1: 0;
     }
 
     protected int getPort(int id){
@@ -106,10 +120,15 @@ public int id;
 
     protected boolean forbidden(){
         for(int i = 0; i < this.weight_pred.size(); i++){
-            if(my_distance_from_root == Integer.MAX_VALUE && this.weight_pred.get(i) == Integer.MAX_VALUE) continue;
-            if(my_distance_from_root > this.in_edges.get(i).weight + this.weight_pred.get(i)){
-                // System.out.println("My dist: " + my_distance_from_root + ", new dist: " + (this.in_edges.get(i).weight + this.weight_pred.get(i)));
-                this.true_start = true;
+            int new_weight = 0;
+            if(this.weight_pred.get(i) == Integer.MAX_VALUE){
+                new_weight = Integer.MAX_VALUE;
+            }
+            else{
+                new_weight = this.in_edges.get(i).weight + this.weight_pred.get(i);
+            }
+
+            if(my_distance_from_root > new_weight){
                 return true;
             } 
         }
@@ -118,8 +137,15 @@ public int id;
 
     protected void advance(){
         for(int i = 0; i < this.weight_pred.size(); i++){
-            if(my_distance_from_root > this.in_edges.get(i).weight + this.weight_pred.get(i)) 
-                my_distance_from_root = this.in_edges.get(i).weight + this.weight_pred.get(i);
+            int new_weight = 0;
+            if(this.weight_pred.get(i) == Integer.MAX_VALUE){
+                new_weight = Integer.MAX_VALUE;
+            }
+            else{
+                new_weight = this.in_edges.get(i).weight + this.weight_pred.get(i);
+            }
+            if(my_distance_from_root > new_weight) 
+                my_distance_from_root = new_weight;
         }
 
         for(Edge e : this.out_edges){
@@ -132,6 +158,7 @@ public int id;
     private void sendDistanceToRoot(){
         Message msg = new Message(this.port, getPort(0), MessageTag.TAG_4, Integer.toString(this.my_distance_from_root));
         comm.send("localhost", getPort(0), msg);
+        termination_state = true;
     }
     
 }

@@ -12,14 +12,14 @@ public class BellmanFord_Wrapper {
         
         root = new BellmanFordRoot(n, edges);
         // System.out.println("Root created!");
-        Thread root_thread = new Thread(() -> root.start());
+        Thread root_thread = new Thread(root);
         root_thread.start();
         nodes = new ArrayList<>();
         for(int i = 1; i < n; i++){
             BellmanFord test = new BellmanFord(i, n, edges);
             // System.out.println("Node " + Integer.toString(i) + " created!");
             nodes.add(test);
-            Thread thread = new Thread(() -> test.start());
+            Thread thread = new Thread(test);
             thread.start();
         }
         try{
